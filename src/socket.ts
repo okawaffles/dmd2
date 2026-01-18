@@ -161,12 +161,22 @@ export class DMDataSocket {
 
         if (!ws_ticket) return false;
 
+        if (this.debug_mode) this.logger.debug('got ticket, starting socket...');
+
         try {
             this.SOCKET = new WebSocket(`ws://${this.region}.api.dmdata.jp/v2/websocket?ticket=${ws_ticket.ticket}`);
+
+            this.SOCKET.onerror = (ev) => {
+                this.logger.error('There was an error connecting to DMData.');
+                this.SOCKET.close();
+                this.emit(WebSocketEvent.WS_FAIL_NO_RETRY);
+                console.error(ev);
+            }
 
             while (this.SOCKET.readyState == WebSocket.CONNECTING) {
                 // wait 1 sec each loop
                 await new Promise((resolve) => setTimeout(resolve, 1_000));
+                if (this.debug_mode) this.logger.debug(`waiting for connected... (${this.SOCKET.readyState})`);
             }
 
             if (this.SOCKET.readyState == WebSocket.OPEN) {
@@ -176,12 +186,12 @@ export class DMDataSocket {
 
                 return true;
             } else {
-                this.emit(WebSocketEvent.WS_FAIL);
+                this.emit(WebSocketEvent.WS_FAIL_NO_RETRY);
                 return false;
             }
         } catch (err) {
             if (this.debug_mode) console.error(err);
-            this.emit(WebSocketEvent.WS_FAIL);
+            this.emit(WebSocketEvent.WS_FAIL_NO_RETRY);
             return false;
         }
     }
@@ -189,6 +199,7 @@ export class DMDataSocket {
     /* Data handling */
     private setupSocketHandlers(json_message: {type: string, [key: string]: unknown}) {
         if (json_message.type == 'ping') {
+            if (this.debug_mode) this.logger.debug('PING received, handling automatically.');
             const proper_message = json_message as {type: string, pingId: string};
             this.SOCKET.send(JSON.stringify({type:'pong',pingId:proper_message.pingId}));
             this.emitter.emit(WebSocketEvent.WS_PING);

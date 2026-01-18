@@ -11,7 +11,7 @@
   "name": "dmd2",
   "version": "0.1.0",
   "description": "An easy-to-use package for interfacing with Project DM-D.S.S.",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
