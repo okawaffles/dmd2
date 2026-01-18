@@ -1,0 +1,27 @@
+{
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@types/ws": "^8.18.1",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "okayulogger": "^3.0.0",
+    "ws": "^8.18.3"
+  },
+  "name": "dmd2",
+  "version": "0.1.0",
+  "description": "An easy-to-use package for interfacing with Project DM-D.S.S.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "earthquake",
+    "dmdata",
+    "project",
+    "dm-dss",
+    "lily-dmdata"
+  ],
+  "author": "okawaffles",
+  "license": "ISC"
+}
