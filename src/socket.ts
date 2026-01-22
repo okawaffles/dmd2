@@ -218,5 +218,18 @@ export class DMDataSocket {
             this.SOCKET.send(JSON.stringify({type:'pong',pingId:proper_message.pingId}));
             this.emitter.emit(WebSocketEvent.WS_PING);
         }
+        if (json_message.type == 'error') {
+            this.logger.error(`Received error ${json_message.code} from DMData: ${json_message.error}`);
+            if (json_message.close) {
+                this.SOCKET.close();
+                this.is_connected = false;
+                // automatically try to reconnect
+                this.logger.warn('Socket was unexpectedly closed due to an error. Attempting to reconnect in 5 seconds.');
+                setTimeout(() => {
+                    this.emit(WebSocketEvent.WS_RECONNECTING);
+                    this.Start({classifications: this.classifications, data_types: this.data_types, include_tests: this.including_tests});
+                }, 5_000);
+            }
+        }
     }
 }
