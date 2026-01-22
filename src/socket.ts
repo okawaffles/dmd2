@@ -1,6 +1,7 @@
 import {Logger} from "okayulogger";
 import {Classification, DataTypeCode} from "./typings/dataTypes";
 import EventEmitter = require("node:events");
+import {ErrorEvent} from "ws";
 
 /**
  * API Regions prefixes for the WebSocket. \<region\>.api.dmdata.jp/v2/websocket
@@ -69,7 +70,8 @@ export interface WSTicket {
 export class DMDataSocket {
     public readonly app_name: string;
     public readonly region: DMDataSocketRegion;
-    public readonly is_connected: boolean = false;
+    public is_connecting: boolean = false;
+    public is_connected: boolean = false;
     public readonly socket_id!: number;
 
     public classifications: Array<Classification> = [];
@@ -88,7 +90,7 @@ export class DMDataSocket {
     /**
      * A websocket class for helping interface with Project DM-D.S.S
      * @param api_key Your DMData API key
-     * @param config Optional configuration. Highly recommended to set application name.
+     * @param config Optional configuration. Highly recommended to set an application name.
      * @param url_override Optional override for the URL. Useful when connecting to a custom server. Format must be `https://example.com` with no trailing slash.
      */
     constructor(api_key: string, config: DMDataSocketConfig = {region: DMDataSocketRegion.AUTOMATIC, debug_logging: false, application_name: 'dmd2 application'}, url_override?: string) {
@@ -161,16 +163,21 @@ export class DMDataSocket {
 
         if (!ws_ticket) return false;
 
-        if (this.debug_mode) this.logger.debug('got ticket, starting socket...');
+        if (this.debug_mode) this.logger.debug(`got ticket (${ws_ticket.ticket}), starting socket...`);
 
         try {
-            this.SOCKET = new WebSocket(`ws://${this.region}.api.dmdata.jp/v2/websocket?ticket=${ws_ticket.ticket}`);
+            this.SOCKET = new WebSocket(`wss://${this.region}.api.dmdata.jp/v2/websocket?ticket=${ws_ticket.ticket}`);
+            this.is_connecting = true;
 
-            this.SOCKET.onerror = (ev) => {
-                this.logger.error('There was an error connecting to DMData.');
+            this.SOCKET.onerror = (ev: Event): any => {
+                if (!this.is_connecting && !this.is_connected) return;
+                this.is_connecting = false;
+
+                this.logger.error(`There was an error connecting to DMData.`);
+                console.error((ev as unknown as ErrorEvent).message);
+
                 this.SOCKET.close();
                 this.emit(WebSocketEvent.WS_FAIL_NO_RETRY);
-                console.error(ev);
             }
 
             while (this.SOCKET.readyState == WebSocket.CONNECTING) {
@@ -181,16 +188,22 @@ export class DMDataSocket {
 
             if (this.SOCKET.readyState == WebSocket.OPEN) {
                 this.emit(WebSocketEvent.WS_CONNECTED);
+                this.is_connected = true;
+                this.is_connecting = false;
 
                 this.SOCKET.onmessage = (ev) => this.setupSocketHandlers(JSON.parse(ev.data));
 
                 return true;
             } else {
                 this.emit(WebSocketEvent.WS_FAIL_NO_RETRY);
+                this.is_connecting = false;
+                this.is_connected = false;
                 return false;
             }
         } catch (err) {
             if (this.debug_mode) console.error(err);
+            this.is_connecting = false;
+            this.is_connected = false;
             this.emit(WebSocketEvent.WS_FAIL_NO_RETRY);
             return false;
         }
@@ -198,6 +211,7 @@ export class DMDataSocket {
 
     /* Data handling */
     private setupSocketHandlers(json_message: {type: string, [key: string]: unknown}) {
+        if (this.debug_mode) this.logger.debug(`received message: ${JSON.stringify(json_message)}`);
         if (json_message.type == 'ping') {
             if (this.debug_mode) this.logger.debug('PING received, handling automatically.');
             const proper_message = json_message as {type: string, pingId: string};
