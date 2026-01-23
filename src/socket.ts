@@ -1,7 +1,8 @@
 import {Logger} from "okayulogger";
-import {Classification, DataTypeCode} from "./typings/dataTypes";
+import {BodyHeader, Classification, DataTypeCode, WebSocketData} from "./typings/dataTypes";
 import EventEmitter = require("node:events");
 import {ErrorEvent} from "ws";
+import {DecompressData} from "./handlers/decompressor";
 
 /**
  * API Regions prefixes for the WebSocket. \<region\>.api.dmdata.jp/v2/websocket
@@ -29,7 +30,8 @@ export enum WebSocketEvent {
     WS_CONNECTED = 'ws_connected',
     WS_DISCONNECTED = 'ws_disconnected',
     WS_RECONNECTING = 'ws_reconnect',
-    WS_PING = 'ws_ping'
+    WS_PING = 'ws_ping',
+    WS_DATA = 'ws_data',
 }
 
 /**
@@ -210,7 +212,7 @@ export class DMDataSocket {
     }
 
     /* Data handling */
-    private setupSocketHandlers(json_message: {type: string, [key: string]: unknown}) {
+    private setupSocketHandlers(json_message: {type: string, [key: string]: unknown} | WebSocketData) {
         if (this.debug_mode) this.logger.debug(`received message: ${JSON.stringify(json_message)}`);
         if (json_message.type == 'ping') {
             if (this.debug_mode) this.logger.debug('PING received, handling automatically.');
@@ -230,6 +232,12 @@ export class DMDataSocket {
                     this.Start({classifications: this.classifications, data_types: this.data_types, include_tests: this.including_tests});
                 }, 5_000);
             }
+        }
+
+        if (json_message.type == 'data') {
+            const packet = json_message as WebSocketData;
+            const decompressed = DecompressData(packet.body, packet.compression);
+
         }
     }
 }

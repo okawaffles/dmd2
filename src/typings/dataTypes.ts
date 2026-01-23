@@ -36,3 +36,68 @@ export enum Classification {
     EEW_WARNING = 'eew.warning',
     EEW_FORECAST = 'eew.forecast',
 }
+
+/**
+ * Interface mapped to documentation at https://dmdata.jp/docs/reference/api/v2/websocket#type-data.
+ */
+export interface WebSocketData {
+    type: 'data',
+    version: string,
+    classification: Classification,
+    id: string,
+    passing: Array<{name: string, time: string}>,
+    head: {
+        type: DataTypeCode,
+        author: string,
+        time: string,
+        test: boolean,
+        xml: boolean
+    },
+    xmlReport: {
+        control: {
+            title: string,
+            dateTime: string,
+            status: string,
+            editorialOffice: string,
+            publishingOffice: string,
+        },
+        head: {
+            title: string,
+            reportDateTime: string,
+            targetDateTime: string,
+            eventId?: string,
+            serial?: string,
+            infoType: string,
+            infoKind: string,
+            infoKindVersion: string,
+            headline: string,
+        }
+    },
+    format: 'xml' | 'a/n' | 'binary',
+    compression: 'gzip' | 'zip',
+    encoding: 'base64' | 'utf-8',
+    body: string,
+}
+
+
+export interface BodyHeader {
+    _originalId: string,
+    _schema: {
+        type: string,
+        version: string
+    },
+    type: string,
+    title: string,
+    status: string,
+    infoType: string,
+    editorialOffice: string,
+    publishingOffice: Array<string>,
+    pressDateTime: string,
+    reportDateTime: string,
+    targetDateTime: string,
+    eventId: string,
+    serialNo: string,
+    infoKind: string,
+    infoKindVersion: string,
+    headline: string,
+}

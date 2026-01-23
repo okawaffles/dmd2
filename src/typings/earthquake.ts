@@ -6,3 +6,23 @@ export enum EEW_TYPE {
     WARNING = 'eew_warning',
     CANCEL = 'eew_cancel'
 }
+
+export enum ShindoValue {
+    UNKNOWN = 'over',
+    ONE = '1',
+    TWO = '2',
+    THREE = '3',
+    FOUR = '4',
+    FIVE_LOWER = '5-',
+    FIVE_UPPER = '5+',
+    SIX_LOWER = '6-',
+    SIX_UPPER = '6+',
+    SEVEN = '7'
+}
+
+export interface EEW_Information {
+    isLastInfo: boolean,
+    isCanceled: boolean,
+    isWarning: boolean,
+
+}
